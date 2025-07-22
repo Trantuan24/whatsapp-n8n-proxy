@@ -1,333 +1,252 @@
-# Hướng Dẫn Triển Khai Hệ Thống Quản Lý Báo Cáo và Giao Task 2 Chiều qua WhatsApp
+# 🚀 Hướng Dẫn Triển Khai WhatsApp Task Management System
 
-## 📋 Tổng Quan Dự Án
+> **Mục đích tài liệu**: Hướng dẫn từng bước triển khai hệ thống quản lý báo cáo và giao task tự động qua WhatsApp
 
-### Mục Tiêu
-Xây dựng hệ thống automation hoàn chỉnh cho việc quản lý báo cáo và giao task 2 chiều giữa nhân viên và quản lý thông qua WhatsApp, sử dụng n8n làm nền tảng automation chính.
+## 🎯 Tổng Quan Dự Án
 
-### Phạm Vi Dự Án
-- **Luồng 1**: Nhân viên → Admin/Boss (Gửi báo cáo)
-- **Luồng 2**: Admin/Boss → Nhân viên (Giao task)
-- **Tích hợp AI**: Tự động tóm tắt báo cáo
-- **Lưu trữ**: Google Sheets hoặc Database
-- **Đa phương tiện**: Hỗ trợ text, PDF, voice, hình ảnh
-
-### Lợi Ích
-- ✅ Tự động hóa quy trình báo cáo và giao task
-- ✅ Tập trung quản lý thông tin từ nhiều nhân viên
-- ✅ Tích hợp AI để tóm tắt thông minh
-- ✅ Hỗ trợ đa phương tiện và hẹn giờ gửi
-- ✅ Giao diện quen thuộc qua WhatsApp
-
-## 🏗️ Kiến Trúc Hệ Thống
-
-### Sơ Đồ Luồng Dữ Liệu
-
-```
-┌─────────────────┐    ┌──────────────┐    ┌─────────────────┐
-│   Nhân Viên     │───▶│   WhatsApp   │───▶│   n8n Workflow │
-│  (Báo cáo)      │    │   Business   │    │   (Xử lý)       │
-└─────────────────┘    │     API      │    └─────────────────┘
-                       └──────────────┘             │
-                              ▲                     ▼
-┌─────────────────┐           │            ┌─────────────────┐
-│  Admin/Boss     │◀──────────┘            │  Google Sheets  │
-│  (Nhận tóm tắt) │                        │   /Database     │
-└─────────────────┘                        └─────────────────┘
-        │                                           ▲
-        ▼                                           │
-┌─────────────────┐    ┌──────────────┐    ┌─────────────────┐
-│  Admin/Boss     │───▶│   WhatsApp   │───▶│   n8n Workflow │
-│  (Giao task)    │    │   Business   │    │   (Phân phối)   │
-└─────────────────┘    │     API      │    └─────────────────┘
-                       └──────────────┘             │
-                              ▲                     ▼
-┌─────────────────┐           │            ┌─────────────────┐
-│   Nhân Viên     │◀──────────┘            │   AI Service    │
-│  (Nhận task)    │                        │  (Tóm tắt)      │
-└─────────────────┘                        └─────────────────┘
-```
-
-### Thành Phần Chính
-
-1. **WhatsApp Business API**: Giao tiếp với người dùng
-2. **n8n Workflows**: Logic xử lý và automation
-3. **Google Sheets**: Lưu trữ dữ liệu đơn giản
-4. **AI Service**: Tóm tắt báo cáo (GPT/Gemini)
-5. **File Storage**: Lưu trữ media files
-
-## 🔧 Yêu Cầu Kỹ Thuật
+### Hệ Thống Sẽ Làm Gì?
+- **📤 Nhận báo cáo**: Nhân viên gửi báo cáo → Tự động lưu trữ + AI tóm tắt
+- **📥 Giao task**: Admin tạo task → Tự động phân phối cho nhân viên
+- **📊 Báo cáo tổng hợp**: Tự động tổng hợp và gửi cho admin hàng ngày
+- **🤖 AI hỗ trợ**: Tóm tắt thông minh, phân loại nội dung
 
 ### Stack Công Nghệ Đã Chọn
+- **WhatsApp**: Meta Business API (miễn phí)
+- **Automation**: n8n instance có sẵn (https://n8n.phuongndam.site/)
+- **Storage**: Google Sheets (miễn phí, dễ quản lý)
+- **AI**: Google Gemini (miễn phí tier)
 
-#### 1. WhatsApp Business API - Meta Official API
-**Lý do chọn**: Miễn phí, chính thức từ Meta, tích hợp tốt với n8n
-- **API Version**: Graph API v18.0 trở lên
-- **Webhook Support**: Có hỗ trợ real-time webhooks
-- **Message Types**: Text, Media (Image, Audio, Document), Templates
-- **Rate Limits**: 1000 messages/24h (tier miễn phí), có thể nâng cấp
+### Lợi Ích Chính
+- ✅ **Không cần app riêng** - Dùng WhatsApp có sẵn
+- ✅ **Tự động 24/7** - Không cần can thiệp thủ công
+- ✅ **AI thông minh** - Tóm tắt và phân loại tự động
+- ✅ **Dễ quản lý** - Tất cả dữ liệu trong Google Sheets
+- ✅ **Chi phí thấp** - Chủ yếu sử dụng dịch vụ miễn phí
 
-**Yêu cầu setup Meta WhatsApp Business API**:
+## 📋 Roadmap Triển Khai (4 Giai Đoạn)
+
+> **Mục đích**: Chia nhỏ việc triển khai thành 4 giai đoạn rõ ràng, dễ theo dõi
+
+### 🎯 Giai Đoạn 1: Setup Cơ Bản (30 phút)
+**Mục đích**: Tạo kết nối WhatsApp ↔ n8n
+- Setup Meta WhatsApp Business API
+- Cấu hình webhook với n8n instance
+- **✅ Hoàn thành khi**: Test message gửi/nhận thành công
+
+### 🎯 Giai Đoạn 2: Storage & AI (20 phút)
+**Mục đích**: Chuẩn bị nơi lưu trữ và AI
+- Tạo Google Sheets với cấu trúc chuẩn
+- Setup Google Gemini API
+- **✅ Hoàn thành khi**: n8n đọc/ghi được Sheets + AI response
+
+### 🎯 Giai Đoạn 3: Workflow Chính (45 phút)
+**Mục đích**: Tạo workflow xử lý báo cáo nhân viên
+- Workflow nhận báo cáo từ WhatsApp
+- Lưu vào Sheets + AI tóm tắt
+- **✅ Hoàn thành khi**: Báo cáo test được xử lý hoàn chỉnh
+
+### 🎯 Giai Đoạn 4: Mở Rộng (30 phút)
+**Mục đích**: Thêm tính năng giao task và báo cáo tổng hợp
+- Workflow giao task cho nhân viên
+- Báo cáo tổng hợp hàng ngày
+- **✅ Hoàn thành khi**: Hệ thống hoạt động end-to-end
+
+---
+
+## 🏗️ Kiến Trúc Hệ Thống (Tham Khảo)
+
+### Luồng Dữ Liệu Đơn Giản
 ```
-✅ Facebook Business Account (đã verified)
-✅ WhatsApp Business Account
-✅ Facebook App với WhatsApp Business Product
-✅ Phone Number đã verify (có thể dùng số test)
-✅ Webhook URL có SSL certificate
+Nhân viên gửi WhatsApp → n8n nhận → Lưu Sheets → AI tóm tắt → Admin nhận báo cáo
+Admin tạo task trong Sheets → n8n đọc → Gửi WhatsApp → Nhân viên nhận
 ```
 
-#### 2. n8n Platform - Instance Có Sẵn
-**Instance URL**: https://n8n.phuongndam.site/
-- **Version**: n8n v1.0+ (hỗ trợ WhatsApp nodes)
-- **Authentication**: Đã setup sẵn
-- **Webhook Base URL**: `https://n8n.phuongndam.site/webhook/`
-- **Available Nodes**: WhatsApp Trigger, WhatsApp, Google Sheets, LangChain
+### 5 Thành Phần Chính
+1. **WhatsApp Business API** - Giao tiếp với users
+2. **n8n Instance** - Logic automation
+3. **Google Sheets** - Lưu trữ dữ liệu
+4. **Google Gemini** - AI tóm tắt
+5. **Google Drive** - Lưu media files
 
-**Lưu ý quan trọng**:
-- Instance đã có sẵn các node cần thiết
-- Không cần setup server riêng
-- Webhook URLs sẽ có format: `https://n8n.phuongndam.site/webhook/whatsapp-reports`
+---
 
-#### 3. Storage Solutions - Google Workspace
-**Primary Storage**: Google Sheets API
-- **Lý do chọn**: Miễn phí, dễ setup, UI thân thiện cho non-tech users
-- **Limitations**: 10M cells/sheet, 2M cells/day quota
-- **Upgrade path**: Có thể migrate sang database sau này
+# 🛠️ GIAI ĐOẠN 1: SETUP CƠ BẢN
 
-**File Storage**: Google Drive API
-- **Lý do chọn**: Tích hợp tốt với Sheets, 15GB miễn phí
-- **Media Types**: Images, Audio, Documents từ WhatsApp
-- **Access Control**: Share permissions cho team
+> **Mục đích**: Tạo kết nối WhatsApp ↔ n8n để có thể gửi/nhận tin nhắn tự động
 
-#### 4. AI Services - Google Gemini API
-**Model**: Gemini 1.5 Flash (khuyến nghị cho production)
-- **Lý do chọn**: Miễn phí tier 15 requests/minute, chi phí thấp khi scale
-- **Use Cases**: Tóm tắt báo cáo, phân loại nội dung, extract insights
-- **Input Limits**: 1M tokens/request (đủ cho hầu hết báo cáo)
-- **Languages**: Hỗ trợ tiếng Việt tốt
+## 🔧 Yêu Cầu Trước Khi Bắt Đầu
 
-**Alternative Models**:
-- **Gemini 1.5 Pro**: Cho tasks phức tạp hơn (có phí)
-- **Gemini 1.0 Pro**: Backup option nếu Flash không khả dụng
+### Cần Chuẩn Bị
+```
+✅ Facebook Business Account (miễn phí)
+✅ Số điện thoại để làm WhatsApp Business
+✅ Truy cập vào n8n instance: https://n8n.phuongndam.site/
+✅ Google Account (để tạo Sheets sau)
+```
 
-### Dependencies và Credentials Chi Tiết
+### Thông Tin Stack Công Nghệ
+- **WhatsApp**: Meta Business API (miễn phí, 1000 tin nhắn/tháng)
+- **n8n**: Instance có sẵn với đầy đủ nodes
+- **Storage**: Google Sheets (miễn phí, 10M cells)
+- **AI**: Google Gemini (miễn phí, 15 requests/phút)
 
-#### Required Credentials
+## 📱 Bước 1.1: Setup Meta WhatsApp Business API
+
+**Mục đích**: Tạo Facebook App để kết nối WhatsApp với n8n
+
+### Tạo Facebook App
+```bash
+1. Truy cập: https://developers.facebook.com/apps/
+2. Chọn "Create App" → "Business" → "WhatsApp"
+3. App Name: "Task Management Bot"
+4. Business Account: Chọn account của bạn
+5. Add Product: WhatsApp Business
+```
+
+### Lấy Credentials Quan Trọng
 ```json
 {
-  "meta_whatsapp_business": {
-    "access_token": "Permanent Access Token từ Facebook App",
-    "phone_number_id": "ID của số WhatsApp Business",
-    "app_id": "Facebook App ID",
-    "app_secret": "Facebook App Secret",
-    "verify_token": "Custom token để verify webhook"
-  },
-  "google_workspace": {
-    "service_account_json": "Service Account credentials file",
-    "sheets_scope": "https://www.googleapis.com/auth/spreadsheets",
-    "drive_scope": "https://www.googleapis.com/auth/drive.file"
-  },
-  "google_ai": {
-    "api_key": "Google AI Studio API Key",
-    "project_id": "Google Cloud Project ID (optional)"
-  }
+  "phone_number_id": "Từ WhatsApp → Getting Started",
+  "access_token": "Từ WhatsApp → Getting Started (Temporary)",
+  "app_secret": "Từ App Settings → Basic",
+  "verify_token": "Tự tạo: task_bot_2025"
 }
 ```
 
-#### n8n Nodes Required (Đã có sẵn trên instance)
+**✅ Hoàn thành bước này khi**: Có đủ 4 thông tin trên
+
+## 🔗 Bước 1.2: Cấu Hình Webhook
+
+**Mục đích**: Cho phép WhatsApp gửi tin nhắn đến n8n tự động
+
+### Setup Webhook URL
+```bash
+# Trong Facebook App → WhatsApp → Configuration → Webhook:
+Callback URL: https://n8n.phuongndam.site/webhook/whatsapp-main
+Verify Token: task_bot_2025
+Subscribe to: messages
+```
+
+### Test Kết Nối
+```bash
+# Test gửi tin nhắn qua API:
+curl -X POST "https://graph.facebook.com/v18.0/PHONE_NUMBER_ID/messages" \
+-H "Authorization: Bearer ACCESS_TOKEN" \
+-H "Content-Type: application/json" \
+-d '{
+  "messaging_product": "whatsapp",
+  "to": "84xxxxxxxxx",
+  "type": "text",
+  "text": {"body": "Test từ n8n setup"}
+}'
+```
+
+**✅ Hoàn thành bước này khi**: Test message gửi thành công
+
+---
+
+# 📊 GIAI ĐOẠN 2: STORAGE & AI SETUP
+
+> **Mục đích**: Chuẩn bị nơi lưu trữ dữ liệu và AI để tóm tắt báo cáo
+
+## 📋 Bước 2.1: Tạo Google Sheets Storage
+
+**Mục đích**: Tạo nơi lưu trữ báo cáo và task, dễ xem và quản lý
+
+### Tạo Google Sheets
+```bash
+1. Truy cập: https://sheets.google.com/
+2. Tạo sheet mới: "WhatsApp Task Management"
+3. Tạo 3 tabs:
+   - "Reports" (Báo cáo nhân viên)
+   - "Tasks" (Task cần giao)
+   - "Logs" (Log hoạt động)
+```
+
+### Cấu Trúc Dữ Liệu Chuẩn
+
+**Tab "Reports"**:
+```
+A: Timestamp | B: Employee_Phone | C: Message_Content | D: AI_Summary | E: Status
+2025-01-20 09:30 | 84901234567 | Báo cáo hoàn thành... | Đã hoàn thành task A,B | Processed
+```
+
+**Tab "Tasks"**:
+```
+A: Task_ID | B: Employee_Phone | C: Task_Content | D: Due_Date | E: Status
+TSK001 | 84901234567 | Hoàn thành báo cáo tháng 1 | 2025-01-25 | Pending
+```
+
+**Tab "Logs"**:
+```
+A: Timestamp | B: Action | C: Details | D: Status
+2025-01-20 09:30 | Message_Received | From 84901234567 | Success
+```
+
+### Setup Service Account
+```bash
+1. Google Cloud Console → IAM → Service Accounts
+2. Create Service Account: "n8n-whatsapp-bot"
+3. Generate JSON key và download
+4. Share Google Sheet với service account email (Editor permission)
+```
+
+**✅ Hoàn thành bước này khi**: Service account có thể đọc/ghi sheet
+
+## 🤖 Bước 2.2: Setup Google Gemini AI
+
+**Mục đích**: Cấu hình AI để tóm tắt báo cáo tự động
+
+### Lấy Gemini API Key
+```bash
+1. Truy cập: https://aistudio.google.com/
+2. Get API Key → Create API Key
+3. Copy API key (dạng: AIza...)
+```
+
+### Test AI Connection
+```bash
+curl -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=YOUR_API_KEY" \
+-H "Content-Type: application/json" \
+-d '{
+  "contents": [{
+    "parts": [{
+      "text": "Tóm tắt: Hôm nay tôi đã hoàn thành task A và B, gặp khó khăn ở task C"
+    }]
+  }]
+}'
+```
+
+**✅ Hoàn thành bước này khi**: API trả về response tóm tắt
+
+---
+
+# ⚙️ GIAI ĐOẠN 3: TẠO WORKFLOW CHÍNH
+
+> **Mục đích**: Tạo workflow xử lý báo cáo nhân viên - đây là core functionality của hệ thống
+
+## 🔧 Bước 3.1: Setup Credentials trong n8n
+
+**Mục đích**: Cấu hình các kết nối cần thiết trong n8n
+
+### Truy Cập n8n Instance
+```bash
+1. Truy cập: https://n8n.phuongndam.site/
+2. Login với account được cấp
+3. Kiểm tra nodes có sẵn: WhatsApp, Google Sheets, Gemini
+```
+
+### Tạo Credentials
+
+**WhatsApp Business Credential**:
 ```json
 {
-  "core_nodes": [
-    "n8n-nodes-base.whatsAppTrigger",
-    "n8n-nodes-base.whatsApp",
-    "n8n-nodes-base.googleSheets",
-    "n8n-nodes-base.googleDrive",
-    "n8n-nodes-base.httpRequest",
-    "n8n-nodes-base.code",
-    "n8n-nodes-base.if",
-    "n8n-nodes-base.schedule"
-  ],
-  "langchain_nodes": [
-    "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
-    "@n8n/n8n-nodes-langchain.chatTrigger"
-  ]
-}
-```
-
-#### Environment Variables (Cho n8n instance)
-```bash
-# WhatsApp Configuration
-WHATSAPP_WEBHOOK_VERIFY_TOKEN=your_custom_verify_token
-WHATSAPP_WEBHOOK_URL=https://n8n.phuongndam.site/webhook/whatsapp-main
-
-# Google Configuration
-GOOGLE_SHEETS_ID=your_google_sheets_id
-GOOGLE_DRIVE_FOLDER_ID=your_drive_folder_id
-
-# AI Configuration
-GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-1.5-flash
-
-# Admin Configuration
-ADMIN_PHONE_NUMBER=84xxxxxxxxx
-EMPLOYEE_PHONE_NUMBERS=84xxxxxxxxx,84yyyyyyyyy,84zzzzzzzzz
-```
-
-#### API Quotas và Limitations
-```json
-{
-  "whatsapp_business_api": {
-    "free_tier": "1000 conversations/month",
-    "rate_limit": "80 messages/second",
-    "webhook_timeout": "20 seconds"
-  },
-  "google_sheets_api": {
-    "read_requests": "100 requests/100 seconds/user",
-    "write_requests": "100 requests/100 seconds/user",
-    "daily_quota": "Unlimited (với service account)"
-  },
-  "google_drive_api": {
-    "requests_per_day": "1 billion",
-    "requests_per_100_seconds": "1000",
-    "storage_limit": "15GB (miễn phí)"
-  },
-  "gemini_api": {
-    "free_tier": "15 requests/minute",
-    "paid_tier": "1000 requests/minute",
-    "input_limit": "1M tokens/request"
-  }
-}
-```
-
-## 🚀 Hướng Dẫn Setup Từng Bước
-
-### Bước 1: Cấu Hình Meta WhatsApp Business API
-
-#### 1.1. Tạo Facebook Business Account và App
-
-**Bước 1**: Tạo Facebook Business Account
-```bash
-# Truy cập: https://business.facebook.com/
-# Tạo Business Account mới hoặc sử dụng có sẵn
-# Verify business account (cần thông tin doanh nghiệp)
-```
-
-**Bước 2**: Tạo Facebook App
-```bash
-# Truy cập: https://developers.facebook.com/apps/
-# Chọn "Create App" → "Business" → "WhatsApp"
-# App Name: "WhatsApp Task Management"
-# Business Account: Chọn account đã tạo ở bước 1
-```
-
-**Bước 3**: Thêm WhatsApp Business Product
-```bash
-# Trong App Dashboard → Add Product → WhatsApp Business
-# Chọn "Set up" để bắt đầu cấu hình
-```
-
-#### 1.2. Cấu Hình Phone Number và Permissions
-
-**Bước 1**: Add Phone Number
-```bash
-# WhatsApp → Getting Started → Add phone number
-# Chọn "Use a test number" (cho development)
-# Hoặc "Add your own number" (cho production)
-```
-
-**Bước 2**: Lấy Credentials
-```json
-{
-  "app_id": "Lấy từ App Dashboard → Settings → Basic",
-  "app_secret": "Lấy từ App Dashboard → Settings → Basic",
-  "phone_number_id": "Lấy từ WhatsApp → Getting Started",
-  "access_token": "Lấy từ WhatsApp → Getting Started → Temporary token"
-}
-```
-
-**Bước 3**: Tạo Permanent Access Token
-```bash
-# Truy cập: Graph API Explorer
-# GET /me/accounts với User Access Token
-# Lấy Page Access Token từ response
-# Convert sang Permanent Token:
-
-curl -X GET "https://graph.facebook.com/v18.0/oauth/access_token" \
-  -d "grant_type=fb_exchange_token" \
-  -d "client_id=YOUR_APP_ID" \
-  -d "client_secret=YOUR_APP_SECRET" \
-  -d "fb_exchange_token=YOUR_PAGE_ACCESS_TOKEN"
-```
-
-#### 1.3. Cấu Hình Webhook
-
-**Bước 1**: Setup Webhook URL
-```bash
-# Webhook URL: https://n8n.phuongndam.site/webhook/whatsapp-main
-# Verify Token: tạo random string, ví dụ: "whatsapp_verify_2025"
-```
-
-**Bước 2**: Configure Webhook trong Facebook App
-```bash
-# WhatsApp → Configuration → Webhook
-# Callback URL: https://n8n.phuongndam.site/webhook/whatsapp-main
-# Verify Token: whatsapp_verify_2025
-# Webhook Fields: messages, message_deliveries, message_reads
-```
-
-**Bước 3**: Test Webhook Connection
-```bash
-curl -X POST "https://graph.facebook.com/v18.0/YOUR_PHONE_NUMBER_ID/messages" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messaging_product": "whatsapp",
-    "to": "84xxxxxxxxx",
-    "type": "text",
-    "text": {"body": "Test message from n8n setup"}
-  }'
-```
-
-#### 1.4. Verify Setup
-```json
-{
-  "checklist": [
-    "✅ Facebook Business Account verified",
-    "✅ Facebook App created with WhatsApp Product",
-    "✅ Phone number added and verified",
-    "✅ Permanent Access Token generated",
-    "✅ Webhook configured và test thành công",
-    "✅ Test message gửi/nhận thành công"
-  ]
-}
-```
-
-### Bước 2: Thiết Lập n8n Workflows trên Instance
-
-#### 2.1. Truy Cập n8n Instance
-
-**URL**: https://n8n.phuongndam.site/
-```bash
-# Login vào n8n instance
-# Kiểm tra các node có sẵn:
-# - WhatsApp Trigger ✅
-# - WhatsApp ✅
-# - Google Sheets ✅
-# - Google Gemini LangChain ✅
-```
-
-#### 2.2. Tạo Credentials trong n8n
-
-**WhatsApp Business API Credential**:
-```json
-{
-  "credential_name": "Meta WhatsApp Business",
-  "credential_type": "whatsAppTriggerApi",
+  "name": "Meta WhatsApp Business",
+  "type": "whatsAppTriggerApi",
   "data": {
-    "accessToken": "YOUR_PERMANENT_ACCESS_TOKEN",
+    "accessToken": "YOUR_ACCESS_TOKEN",
     "phoneNumberId": "YOUR_PHONE_NUMBER_ID",
-    "appSecret": "YOUR_APP_SECRET",
-    "verifyToken": "whatsapp_verify_2025"
+    "verifyToken": "task_bot_2025"
   }
 }
 ```
@@ -335,11 +254,11 @@ curl -X POST "https://graph.facebook.com/v18.0/YOUR_PHONE_NUMBER_ID/messages" \
 **Google Sheets Credential**:
 ```json
 {
-  "credential_name": "Google Sheets Service Account",
-  "credential_type": "googleSheetsOAuth2Api",
+  "name": "Google Sheets Service Account",
+  "type": "googleSheetsOAuth2Api",
   "data": {
-    "serviceAccountEmail": "your-service-account@project.iam.gserviceaccount.com",
-    "privateKey": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+    "serviceAccountEmail": "n8n-whatsapp-bot@project.iam.gserviceaccount.com",
+    "privateKey": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
   }
 }
 ```
@@ -347,177 +266,356 @@ curl -X POST "https://graph.facebook.com/v18.0/YOUR_PHONE_NUMBER_ID/messages" \
 **Google Gemini Credential**:
 ```json
 {
-  "credential_name": "Google Gemini AI",
-  "credential_type": "googlePalmApi",
+  "name": "Google Gemini AI",
+  "type": "googlePalmApi",
   "data": {
     "apiKey": "YOUR_GEMINI_API_KEY"
   }
 }
 ```
 
-#### 2.3. Workflow Templates cho n8n Instance
+**✅ Hoàn thành bước này khi**: Tất cả credentials test connection thành công
 
-**Workflow 1: WhatsApp Report Processor**
+## 🔄 Bước 3.2: Tạo Workflow "WhatsApp Report Handler"
+
+**Mục đích**: Workflow chính xử lý báo cáo từ nhân viên
+
+### Tạo Workflow Mới
+```bash
+1. n8n → New Workflow
+2. Name: "WhatsApp Report Handler"
+3. Description: "Xử lý báo cáo nhân viên từ WhatsApp"
+```
+
+### Thêm 5 Nodes Chính
+
+**Node 1: WhatsApp Trigger**
 ```json
 {
-  "name": "WhatsApp Report Processor",
-  "active": true,
-  "nodes": [
-    {
-      "name": "WhatsApp Trigger",
-      "type": "n8n-nodes-base.whatsAppTrigger",
-      "webhookId": "whatsapp-main",
-      "parameters": {
-        "updates": ["messages"],
-        "options": {
-          "includeMetadata": true
-        }
-      },
-      "credentials": {
-        "whatsAppTriggerApi": {
-          "name": "Meta WhatsApp Business"
-        }
-      }
-    },
-    {
-      "name": "Filter Employee Messages",
-      "type": "n8n-nodes-base.if",
-      "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{ $json.from }}",
-              "operation": "isContainedIn",
-              "value2": "84901234567,84907654321,84912345678"
-            }
-          ]
-        }
-      }
-    }
-  ]
+  "name": "Nhận tin nhắn WhatsApp",
+  "type": "n8n-nodes-base.whatsAppTrigger",
+  "parameters": {
+    "updates": ["messages"],
+    "webhookId": "whatsapp-main"
+  },
+  "credentials": "Meta WhatsApp Business"
 }
 ```
 
-**Workflow 2: Task Distribution System**
-```json
-{
-  "name": "Task Distribution System",
-  "active": true,
-  "nodes": [
-    {
-      "name": "Schedule Trigger",
-      "type": "n8n-nodes-base.schedule",
-      "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "field": "cronExpression",
-              "expression": "0 9 * * 1-5"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "name": "Get Tasks from Sheets",
-      "type": "n8n-nodes-base.googleSheets",
-      "parameters": {
-        "operation": "read",
-        "sheetId": "YOUR_GOOGLE_SHEETS_ID",
-        "range": "Tasks!A:E",
-        "options": {
-          "headerRow": true
-        }
-      },
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "name": "Google Sheets Service Account"
-        }
-      }
-    }
-  ]
-}
-```
-
-### Bước 3: Kết Nối Database/Storage
-
-#### Cấu hình Google Sheets
-
-1. **Tạo Google Service Account**
-   ```bash
-   # Tạo service account tại Google Cloud Console
-   # Download JSON credentials file
-   ```
-
-2. **Cấu trúc Sheet "Reports"**
-   ```
-   | A: Timestamp | B: Employee_ID | C: Message | D: Media_URL | E: AI_Summary |
-   |--------------|----------------|------------|--------------|---------------|
-   | 2025-01-20   | EMP001        | Báo cáo... | drive.com... | Tóm tắt...   |
-   ```
-
-3. **Cấu trúc Sheet "Tasks"**
-   ```
-   | A: Task_ID | B: Employee_ID | C: Task_Content | D: Due_Date | E: Status |
-   |------------|----------------|-----------------|-------------|-----------|
-   | TSK001     | EMP001        | Hoàn thành...   | 2025-01-25  | Pending   |
-   ```
-
-#### Cấu hình Google Drive (Lưu Media)
-
+**Node 2: Filter Nhân Viên**
 ```javascript
-// n8n Code node - Upload to Drive
-const fs = require('fs');
-const { google } = require('googleapis');
+// Code Node - Chỉ xử lý tin nhắn từ nhân viên
+const employeePhones = ['84901234567', '84907654321', '84912345678'];
+const message = $input.first().json;
 
-// Upload file logic
-const uploadFile = async (fileBuffer, fileName) => {
-  const drive = google.drive({ version: 'v3', auth });
-  
-  const fileMetadata = {
-    name: fileName,
-    parents: ['your_folder_id']
-  };
-  
-  const media = {
-    mimeType: 'application/octet-stream',
-    body: fileBuffer
-  };
-  
-  const file = await drive.files.create({
-    resource: fileMetadata,
-    media: media,
-    fields: 'id'
-  });
-  
-  return `https://drive.google.com/file/d/${file.data.id}/view`;
-};
+if (!employeePhones.includes(message.from)) {
+  return []; // Bỏ qua nếu không phải nhân viên
+}
+
+return [{
+  json: {
+    employee_phone: message.from,
+    message_content: message.text?.body || '',
+    timestamp: new Date().toISOString(),
+    message_id: message.id
+  }
+}];
 ```
 
-### Bước 4: Cấu Hình Authentication
-
-#### Google Sheets Credentials
-
-1. **Tạo Service Account**
-   - Google Cloud Console → IAM & Admin → Service Accounts
-   - Tạo key JSON và download
-
-2. **Chia sẻ Sheet**
-   - Share Google Sheet với email service account
-   - Cấp quyền Editor
-
-#### WhatsApp API Credentials
-
+**Node 3: Lưu vào Google Sheets**
 ```json
 {
-  "credential_type": "whatsAppTriggerApi",
-  "name": "WhatsApp OAuth account",
-  "data": {
-    "accessToken": "your_access_token",
-    "phoneNumberId": "your_phone_number_id"
+  "name": "Lưu báo cáo vào Sheets",
+  "type": "n8n-nodes-base.googleSheets",
+  "parameters": {
+    "operation": "append",
+    "sheetId": "YOUR_GOOGLE_SHEETS_ID",
+    "range": "Reports!A:E",
+    "values": [
+      [
+        "={{ $json.timestamp }}",
+        "={{ $json.employee_phone }}",
+        "={{ $json.message_content }}",
+        "Đang xử lý AI...",
+        "Processing"
+      ]
+    ]
+  },
+  "credentials": "Google Sheets Service Account"
+}
+```
+
+**Node 4: AI Tóm Tắt**
+```json
+{
+  "name": "Gemini AI Tóm Tắt",
+  "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+  "parameters": {
+    "model": "gemini-1.5-flash",
+    "messages": [
+      {
+        "content": "Tóm tắt báo cáo công việc sau trong 1-2 câu ngắn gọn:\n\n{{ $json.message_content }}",
+        "role": "user"
+      }
+    ]
+  },
+  "credentials": "Google Gemini AI"
+}
+```
+
+**Node 5: Cập Nhật AI Summary**
+```json
+{
+  "name": "Cập nhật AI Summary",
+  "type": "n8n-nodes-base.googleSheets",
+  "parameters": {
+    "operation": "update",
+    "sheetId": "YOUR_GOOGLE_SHEETS_ID",
+    "range": "Reports!D{{ $('Node 3').item.json.row }}:E{{ $('Node 3').item.json.row }}",
+    "values": [
+      [
+        "={{ $json.response }}",
+        "Completed"
+      ]
+    ]
+  },
+  "credentials": "Google Sheets Service Account"
+}
+```
+
+**✅ Hoàn thành bước này khi**: Workflow chạy thành công với test message
+
+## 🧪 Bước 3.3: Test Workflow
+
+**Mục đích**: Đảm bảo workflow hoạt động đúng trước khi deploy
+
+### Test Case 1: Gửi Báo Cáo Text
+```bash
+# Gửi tin nhắn từ số nhân viên:
+"Báo cáo: Hôm nay đã hoàn thành task A và B. Gặp khó khăn ở task C cần hỗ trợ."
+
+# Kiểm tra kết quả:
+1. ✅ Tin nhắn xuất hiện trong n8n execution log
+2. ✅ Dữ liệu được lưu vào Google Sheets tab "Reports"
+3. ✅ AI summary được tạo và cập nhật
+4. ✅ Status chuyển từ "Processing" → "Completed"
+```
+
+### Test Case 2: Filter Nhân Viên
+```bash
+# Gửi tin nhắn từ số không phải nhân viên
+# Kết quả mong đợi: Tin nhắn bị bỏ qua, không lưu vào Sheets
+```
+
+**✅ Hoàn thành Giai đoạn 3 khi**: Cả 2 test case đều pass
+
+---
+
+# 🚀 GIAI ĐOẠN 4: MỞ RỘNG TÍNH NĂNG
+
+> **Mục đích**: Thêm workflow giao task và báo cáo tổng hợp để hoàn thiện hệ thống
+
+## 📋 Bước 4.1: Workflow Giao Task cho Nhân Viên
+
+**Mục đích**: Tự động gửi task từ Google Sheets đến nhân viên qua WhatsApp
+
+### Tạo Workflow "Task Distribution"
+```bash
+1. n8n → New Workflow
+2. Name: "Task Distribution System"
+3. Description: "Gửi task cho nhân viên theo lịch"
+```
+
+### 4 Nodes Chính
+
+**Node 1: Schedule Trigger (9AM hàng ngày)**
+```json
+{
+  "name": "Daily Task Check",
+  "type": "n8n-nodes-base.schedule",
+  "parameters": {
+    "rule": {
+      "interval": [{"field": "cronExpression", "expression": "0 9 * * 1-5"}]
+    }
   }
 }
 ```
+
+**Node 2: Đọc Tasks từ Sheets**
+```json
+{
+  "name": "Get Pending Tasks",
+  "type": "n8n-nodes-base.googleSheets",
+  "parameters": {
+    "operation": "read",
+    "sheetId": "YOUR_GOOGLE_SHEETS_ID",
+    "range": "Tasks!A:E",
+    "options": {"headerRow": true}
+  }
+}
+```
+
+**Node 3: Filter Tasks Pending**
+```javascript
+// Code Node - Chỉ lấy task chưa gửi
+const tasks = $input.all();
+const pendingTasks = tasks.filter(task =>
+  task.json.Status === 'Pending' &&
+  task.json.Due_Date >= new Date().toISOString().split('T')[0]
+);
+
+return pendingTasks.map(task => ({
+  json: {
+    employee_phone: task.json.Employee_Phone,
+    task_content: `📋 *Task mới*: ${task.json.Task_Content}\n📅 Hạn: ${task.json.Due_Date}`,
+    task_id: task.json.Task_ID
+  }
+}));
+```
+
+**Node 4: Gửi WhatsApp**
+```json
+{
+  "name": "Send Task via WhatsApp",
+  "type": "n8n-nodes-base.whatsApp",
+  "parameters": {
+    "resource": "message",
+    "operation": "send",
+    "to": "={{ $json.employee_phone }}",
+    "messageType": "text",
+    "message": "={{ $json.task_content }}"
+  }
+}
+```
+
+## 📊 Bước 4.2: Workflow Báo Cáo Tổng Hợp
+
+**Mục đích**: Gửi báo cáo tổng hợp cho admin mỗi cuối ngày
+
+### Tạo Workflow "Daily Summary"
+```bash
+1. n8n → New Workflow
+2. Name: "Daily Summary Report"
+3. Schedule: 6PM hàng ngày
+```
+
+### Logic Đơn Giản
+```javascript
+// Đọc báo cáo trong ngày → Tổng hợp theo nhân viên → Gửi cho admin
+const today = new Date().toISOString().split('T')[0];
+const reports = await getReportsFromSheets(today);
+
+let summary = `📊 *Báo cáo ngày ${today}*\n\n`;
+summary += `📈 Tổng: ${reports.length} báo cáo\n\n`;
+
+// Group by employee và tạo summary
+const groupedReports = groupByEmployee(reports);
+Object.keys(groupedReports).forEach(emp => {
+  summary += `👤 ${emp}: ${groupedReports[emp].length} báo cáo\n`;
+});
+
+return summary;
+```
+
+**✅ Hoàn thành Giai đoạn 4 khi**: Cả 2 workflow mới hoạt động ổn định
+
+---
+
+# 🔧 TROUBLESHOOTING & SUPPORT
+
+## ⚠️ Lỗi Thường Gặp
+
+### Lỗi 1: WhatsApp không nhận tin nhắn
+```bash
+# Nguyên nhân thường gặp:
+- Webhook URL sai hoặc không accessible
+- Verify token không khớp
+- Phone number chưa được whitelist
+
+# Cách fix:
+1. Kiểm tra webhook URL: https://n8n.phuongndam.site/webhook/whatsapp-main
+2. Verify token phải khớp với setting trong Facebook App
+3. Test webhook bằng curl command
+```
+
+### Lỗi 2: Google Sheets không cập nhật
+```bash
+# Nguyên nhân:
+- Service account không có quyền edit sheet
+- Sheet ID sai
+- Range format không đúng
+
+# Cách fix:
+1. Share sheet với service account email (Editor permission)
+2. Kiểm tra Sheet ID trong URL
+3. Range format: "Reports!A:E" (có dấu !)
+```
+
+### Lỗi 3: AI không tóm tắt
+```bash
+# Nguyên nhân:
+- Gemini API key hết quota
+- Text quá dài (>1M tokens)
+- Credential setup sai
+
+# Cách fix:
+1. Kiểm tra quota tại: https://aistudio.google.com/
+2. Rút ngắn prompt hoặc text input
+3. Test API key bằng curl
+```
+
+## 📞 Hỗ Trợ & Tài Liệu
+
+### Quick Commands
+```bash
+# Test WhatsApp API:
+curl -X POST "https://graph.facebook.com/v18.0/PHONE_ID/messages" \
+-H "Authorization: Bearer TOKEN" \
+-d '{"messaging_product":"whatsapp","to":"84xxx","type":"text","text":{"body":"Test"}}'
+
+# Test Google Sheets:
+curl "https://sheets.googleapis.com/v4/spreadsheets/SHEET_ID/values/Reports!A1:D1" \
+-H "Authorization: Bearer GOOGLE_TOKEN"
+
+# Test Gemini AI:
+curl -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=API_KEY" \
+-d '{"contents":[{"parts":[{"text":"Test"}]}]}'
+```
+
+### Tài Liệu Tham Khảo
+- **[Meta WhatsApp API](https://developers.facebook.com/docs/whatsapp)** - Official docs
+- **[n8n Documentation](https://docs.n8n.io/)** - Workflow automation
+- **[Google Sheets API](https://developers.google.com/sheets/api)** - Spreadsheet integration
+- **[Google Gemini API](https://ai.google.dev/docs)** - AI integration
+
+### Workflow Templates Có Sẵn
+```bash
+# Tham khảo từ collection n8n_trick/:
+- WhatsApp AI Sales Agent: n8n_trick/.../3201-whatsapp-ai-sales-agent.json
+- Business WhatsApp Chatbot: n8n_trick/.../0905-whatsapp-chatbot-rag.json
+```
+
+---
+
+## 🎯 KẾT LUẬN
+
+**Sau khi hoàn thành 4 giai đoạn trên, bạn sẽ có:**
+- ✅ Hệ thống WhatsApp automation hoạt động 24/7
+- ✅ Tự động xử lý báo cáo nhân viên với AI tóm tắt
+- ✅ Phân phối task tự động theo lịch
+- ✅ Báo cáo tổng hợp hàng ngày cho admin
+- ✅ Tất cả dữ liệu được lưu trữ trong Google Sheets dễ quản lý
+
+**Thời gian triển khai**: ~2 giờ (nếu follow đúng hướng dẫn)
+**Chi phí vận hành**: Gần như miễn phí (chỉ phí khi scale lớn)
+
+*Tài liệu được tối ưu hóa cho triển khai nhanh và dễ hiểu. Mọi bước đều có mục đích rõ ràng và checklist hoàn thành.*
+
+---
+
+# 📚 PHỤ LỤC: CHI TIẾT IMPLEMENTATION
+
+> **Mục đích**: Tham khảo chi tiết code và configuration cho các workflow (không bắt buộc đọc để triển khai)
 
 ## 💻 Chi Tiết Implementation
 
